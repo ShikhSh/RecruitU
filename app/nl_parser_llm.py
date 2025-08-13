@@ -1,6 +1,5 @@
 from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field, ValidationError, validator
-from openai import OpenAI
 import os
 import json
 from pathlib import Path
@@ -86,46 +85,94 @@ def build_user_prompt(query: str) -> str:
     )
     return f"{examples_text}\n\nInput: {query}\nOutput:"
 
-# Provider-agnostic entrypoint. Swap in your LLM of choice.
+# # Provider-agnostic entrypoint. Swap in your LLM of choice.
+# def parse_with_llm(query: str) -> Dict[str, Any]:
+#     provider = (os.getenv("LLM_PROVIDER") or "none").lower()
+#     if provider == "none":
+#         raise RuntimeError("LLM disabled")
+#     if provider == "openai":
+#         return _openai_parse(query)
+#     # elif provider == "anthropic": ...
+#     # elif provider == "azure_openai": ...
+#     raise RuntimeError(f"Unsupported LLM_PROVIDER={provider}")
+
+# app/nl_parser_llm.py
 def parse_with_llm(query: str) -> Dict[str, Any]:
     provider = (os.getenv("LLM_PROVIDER") or "none").lower()
-    if provider == "none":
-        raise RuntimeError("LLM disabled")
-    if provider == "openai":
-        return _openai_parse(query)
-    # elif provider == "anthropic": ...
-    # elif provider == "azure_openai": ...
+    if provider == "ollama":
+        return _ollama_parse(query)
+    # keep other branches if you want (openai, etc.)
     raise RuntimeError(f"Unsupported LLM_PROVIDER={provider}")
 
-def _openai_parse(query: str) -> Dict[str, Any]:
-    # Example using OpenAI responses with JSON mode (pseudo; adapt to your client)
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# app/nl_parser_llm.py
+import os, json, re
+from typing import Dict, Any
+from ollama import Client
+from pydantic import ValidationError
+from .nl_parser_llm import NLSlots, normalize_slots  # adjust import path if needed
+
+def _ollama_parse(query: str) -> Dict[str, Any]:
+    host  = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+    model = os.getenv("OLLAMA_MODEL", "llama3.1")
+
+    client = Client(host=host)
     sys = build_system_prompt()
     user = build_user_prompt(query)
-    try:
-        # Use the OpenAI client to send a chat completion request
-        resp = client.chat.completions.create(
-            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-            messages=[{"role": "system", "content": sys}, {"role": "user", "content": user}],
-            response_format={"type": "json_object"},
-            temperature=0
-        )
-    except Exception as e:
-        raise RuntimeError(f"OpenAI API call failed: {e}")
-    # resp = client.chat.completions.create(
-    #     model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-    #     messages=[{"role":"system","content":sys},{"role":"user","content":user}],
-    #     response_format={"type":"json_object"},
-    #     temperature=0
-    # )
-    raw = resp.choices[0].message.content
-    import json
+
+    # Ask for JSON output. Most recent Llama models in Ollama honor `format="json"`.
+    resp = client.chat(
+        model=model,
+        messages=[{"role": "system", "content": sys}, {"role": "user", "content": user}],
+        options={"temperature": 0},
+        format="json",
+    )
+    raw = resp["message"]["content"]
+
     try:
         obj = json.loads(raw)
-        obj = normalize_slots(obj)
-        # Validate schema strictly
-        slots = NLSlots(**obj)
-        return slots.dict(exclude_none=True)
-    except (json.JSONDecodeError, ValidationError) as e:
-        raise RuntimeError(f"LLM parse/validate failed: {e}")
+    except json.JSONDecodeError:
+        m = re.search(r"\{.*\}", raw, re.S)
+        if not m:
+            raise RuntimeError(f"Ollama did not return JSON: {raw[:200]}")
+        obj = json.loads(m.group(0))
+
+    obj = normalize_slots(obj)
+    slots = NLSlots(**obj)
+    return slots.dict(exclude_none=True)
+
+
+
+# def _openai_parse(query: str) -> Dict[str, Any]:
+#     base_url = os.getenv("OPENAI_BASE_URL")
+#     api_key = os.getenv("OPENAI_API_KEY")
+#     model   = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+#     sys = build_system_prompt()
+#     user = build_user_prompt(query)
+#     try:
+#         # Use the OpenAI client to send a chat completion request
+#         resp = client.chat.completions.create(
+#             model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+#             messages=[{"role": "system", "content": sys}, {"role": "user", "content": user}],
+#             response_format={"type": "json_object"},
+#             temperature=0
+#         )
+#     except Exception as e:
+#         raise RuntimeError(f"OpenAI API call failed: {e}")
+#     # resp = client.chat.completions.create(
+#     #     model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+#     #     messages=[{"role":"system","content":sys},{"role":"user","content":user}],
+#     #     response_format={"type":"json_object"},
+#     #     temperature=0
+#     # )
+#     raw = resp.choices[0].message.content
+#     import json
+#     try:
+#         obj = json.loads(raw)
+#         obj = normalize_slots(obj)
+#         # Validate schema strictly
+#         slots = NLSlots(**obj)
+#         return slots.dict(exclude_none=True)
+#     except (json.JSONDecodeError, ValidationError) as e:
+#         raise RuntimeError(f"LLM parse/validate failed: {e}")
