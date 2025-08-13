@@ -1,0 +1,42 @@
+    // {
+    //     "version": "0.2.0",
+    //     "configurations": [
+    //         {
+    //             "name": "Python: Uvicorn",
+    //             "type": "debugpy",
+    //             "request": "launch",
+    //             "module": "uvicorn",
+    //             "args": [
+    //                 "app.main:app", // Replace with your actual module:app
+    //                 "--reload",
+    //                 "--port",
+    //                 "8080"
+    //             ],
+    //             "cwd": "${workspaceFolder}", // Adjust if your app is in a subfolder
+    //             "pythonPath": "${workspaceFolder}/.venv/bin/python"
+    //         }
+    //     ]
+    // }
+
+    {
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "name": "Python Debugger: FastAPI",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "app.main:app",
+                "--reload"
+            ],
+            "jinja": true
+            ,
+            "python": "/Users/shiks/opt/anaconda3/envs/recruitu/bin/python"// "/Users/shiks/Documents/take-home-assignments/recruitU/recruitu-app/.venv/bin/python3.9"
+        }
+    ]
+}
