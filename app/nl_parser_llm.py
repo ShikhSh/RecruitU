@@ -85,16 +85,67 @@ def build_user_prompt(query: str) -> str:
     )
     return f"{examples_text}\n\nInput: {query}\nOutput:"
 
-# # Provider-agnostic entrypoint. Swap in your LLM of choice.
+# =======================================  LLAMA CPP Example  =======================================
+
+# # app/nl_parser_llm.py
+# import os, json, re
+# from typing import Dict, Any
+# from llama_cpp import Llama
+# from pydantic import ValidationError
+# from .nl_parser_llm import NLSlots, normalize_slots  # adjust import path if needed
+
+# # Load once (module global). Tune n_ctx, n_gpu_layers for your machine.
+# _LLAMA = None
+# def _get_llama():
+#     global _LLAMA
+#     if _LLAMA is None:
+#         try:
+#             _LLAMA = Llama(
+#                 model_path=os.getenv("LLAMA_MODEL_PATH", "models/llama-3.1-8b-instruct.Q4_K_M.gguf"),
+#                 n_ctx=int(os.getenv("LLAMA_CTX", "4096")),
+#                 n_gpu_layers=int(os.getenv("LLAMA_N_GPU_LAYERS", "0")),
+#                 # chat_format helps the lib wrap messages; for Meta Llama 3.x use "llama-3"
+#                 chat_format=os.getenv("LLAMA_CHAT_FORMAT", "llama-3"),
+#             )
+#         except Exception as e:
+#             raise RuntimeError(f"Failed to initialize Llama: {e}")
+#     return _LLAMA
+
+# def _llama_cpp_parse(query: str) -> Dict[str, Any]:
+#     llm = _get_llama()
+#     sys = build_system_prompt()
+#     user = build_user_prompt(query)
+
+#     # Ask the model to output JSON only; newer llama.cpp supports a JSON mode via grammar.
+#     out = llm.create_chat_completion(
+#         messages=[{"role":"system","content":sys},{"role":"user","content":user}],
+#         temperature=0,
+#         response_format={"type": "json_object"},  # honored by recent llama.cpp; safe to keep
+#     )
+#     raw = out["choices"][0]["message"]["content"]
+
+#     try:
+#         obj = json.loads(raw)
+#     except json.JSONDecodeError:
+#         m = re.search(r"\{.*\}", raw, re.S)
+#         if not m:
+#             raise RuntimeError(f"Model did not return JSON: {raw[:200]}")
+#         obj = json.loads(m.group(0))
+
+#     obj = normalize_slots(obj)
+#     slots = NLSlots(**obj)
+#     return slots.dict(exclude_none=True)
+
 # def parse_with_llm(query: str) -> Dict[str, Any]:
 #     provider = (os.getenv("LLM_PROVIDER") or "none").lower()
-#     if provider == "none":
-#         raise RuntimeError("LLM disabled")
-#     if provider == "openai":
-#         return _openai_parse(query)
-#     # elif provider == "anthropic": ...
-#     # elif provider == "azure_openai": ...
+#     if provider in ("llama_cpp", "llamacpp"):
+#         return _llama_cpp_parse(query)
+#     # keep your other branches (openai/ollama/http) as you like
 #     raise RuntimeError(f"Unsupported LLM_PROVIDER={provider}")
+
+
+# =======================================  Ollama Example  =======================================
+
 
 # app/nl_parser_llm.py
 def parse_with_llm(query: str) -> Dict[str, Any]:
@@ -114,33 +165,49 @@ from .nl_parser_llm import NLSlots, normalize_slots  # adjust import path if nee
 
 def _ollama_parse(query: str) -> Dict[str, Any]:
     host  = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-    model = os.getenv("OLLAMA_MODEL", "llama3.1")
+    model = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
 
     client = Client(host=host)
     sys = build_system_prompt()
     user = build_user_prompt(query)
 
     # Ask for JSON output. Most recent Llama models in Ollama honor `format="json"`.
-    resp = client.chat(
-        model=model,
-        messages=[{"role": "system", "content": sys}, {"role": "user", "content": user}],
-        options={"temperature": 0},
-        format="json",
-    )
-    raw = resp["message"]["content"]
-
     try:
+        resp = client.chat(
+            model=model,
+            messages=[{"role": "system", "content": sys}, {"role": "user", "content": user}],
+            options={"temperature": 0},
+            format="json",
+        )
+        raw = resp["message"]["content"]
         obj = json.loads(raw)
     except json.JSONDecodeError:
         m = re.search(r"\{.*\}", raw, re.S)
         if not m:
             raise RuntimeError(f"Ollama did not return JSON: {raw[:200]}")
         obj = json.loads(m.group(0))
+    except Exception as e:
+        print(f"Error calling Ollama API: {e}")
+        raise RuntimeError(f"Ollama API call failed: {e}")
 
     obj = normalize_slots(obj)
     slots = NLSlots(**obj)
     return slots.dict(exclude_none=True)
 
+
+
+# =======================================  Open AI Example  =======================================
+
+# # Provider-agnostic entrypoint. Swap in your LLM of choice.
+# def parse_with_llm(query: str) -> Dict[str, Any]:
+#     provider = (os.getenv("LLM_PROVIDER") or "none").lower()
+#     if provider == "none":
+#         raise RuntimeError("LLM disabled")
+#     if provider == "openai":
+#         return _openai_parse(query)
+#     # elif provider == "anthropic": ...
+#     # elif provider == "azure_openai": ...
+#     raise RuntimeError(f"Unsupported LLM_PROVIDER={provider}")
 
 
 # def _openai_parse(query: str) -> Dict[str, Any]:

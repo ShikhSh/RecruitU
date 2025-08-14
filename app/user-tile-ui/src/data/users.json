@@ -1,0 +1,44 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "John Doe",
+      "title": "Software Engineer",
+      "current_company": "Tech Solutions",
+      "previous_company": "Innovatech",
+      "city": "San Francisco",
+      "undergraduate_year": 2018,
+      "sector": "Technology"
+    },
+    {
+      "id": 2,
+      "name": "Jane Smith",
+      "title": "Product Manager",
+      "current_company": "Creative Corp",
+      "previous_company": "Design Studio",
+      "city": "New York",
+      "undergraduate_year": 2016,
+      "sector": "Product Management"
+    },
+    {
+      "id": 3,
+      "name": "Alice Johnson",
+      "title": "Data Scientist",
+      "current_company": "Data Insights",
+      "previous_company": "Analytics Co.",
+      "city": "Chicago",
+      "undergraduate_year": 2019,
+      "sector": "Data Science"
+    },
+    {
+      "id": 4,
+      "name": "Bob Brown",
+      "title": "UX Designer",
+      "current_company": "User Experience Inc.",
+      "previous_company": "Creative Agency",
+      "city": "Los Angeles",
+      "undergraduate_year": 2017,
+      "sector": "Design"
+    }
+  ]
+}
