@@ -78,16 +78,10 @@ curl -fsSL https://ollama.ai/install.sh | sh
 ollama pull llama3.1:8b
 ```
 
-### Below is required on EC2 instances
+### Below are required on EC2 instances
 ```bash
 sudo apt install python3.12-venv
 sudo apt install python3-pip
-```
-
-### Create a virtual environment
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
 ```
 
 ### Clone the repository
@@ -96,18 +90,20 @@ git clone https://github.com/ShikhSh/RecruitU.git
 cd RecruitU
 ```
 
-### 2. Backend Setup
+### Backend Setup
 
 Create a virtual environment and install dependencies:
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
 ### 3. Frontend Setup
 
 ```bash
-cd font-end-app
+cd front-end-app
 npm install
 npm start
 ```

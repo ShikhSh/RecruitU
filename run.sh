@@ -18,6 +18,7 @@ ollama pull llama3.1:8b
 
 # Below is required on EC2 instances
 sudo apt install python3.12-venv
+sudo apt install python3-pip
 # Create a virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
@@ -27,10 +28,12 @@ git clone https://github.com/ShikhSh/RecruitU.git
 
 # Change to the project directory
 cd RecruitU
+
 # Install Python dependencies
-sudo apt install python3-pip
 pip install -r requirements.txt
 
+# Install frontend dependencies
+cd front-end-app
 sudo apt install npm
 cd app/user-tile-ui
 npm install react react-dom
