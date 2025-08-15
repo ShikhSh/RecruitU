@@ -6,7 +6,7 @@ from typing import List, Dict, Any
 from app.config import Settings, get_settings
 from app.clients import people_api
 # from app.nl_parser import parse_nl_query
-from app.nl_parser_llm import parse_with_llm, call_llm_for_suggestions
+from app.nl_parser_llm import generate_query_with_llm, call_llm_for_suggestions
 from app.schemas import NLSearchRequest, SearchResponse, PeopleResponse
 import os
 
@@ -43,7 +43,7 @@ async def search_nl(req: NLSearchRequest, settings: Settings = Depends(get_setti
     parsed = {}
     if use_llm:
         try:
-            parsed = parse_with_llm(req.query)
+            parsed = generate_query_with_llm(req.query)
         except Exception as e:
             # fall back to deterministic parser
             print(f"LLM parsing failed: {e}")

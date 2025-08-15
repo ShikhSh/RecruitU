@@ -65,16 +65,16 @@ def build_user_prompt(query: str) -> str:
     )
     return f"{examples_text}\n\nInput: {query}\nOutput:"
 
-def parse_with_llm(query: str) -> Dict[str, Any]:
+def generate_query_with_llm(query: str) -> Dict[str, Any]:
     provider = (os.getenv("LLM_PROVIDER") or "none").lower()
     if provider == "ollama":
         return _ollama_parse(query)
     # keep other branches if you want (openai, etc.)
     raise RuntimeError(f"Unsupported LLM_PROVIDER={provider}")
 
-def call_ollama_json(system_prompt: str, user_prompt: str, model: str = None) -> dict:
+def call_ollama_json(system_prompt: str, user_prompt: str) -> dict:
     host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-    model = model or os.getenv("OLLAMA_MODEL", "llama3.1:8b")
+    model = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
     client = Client(host=host)
     try:
         resp = client.chat(

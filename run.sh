@@ -1,13 +1,22 @@
 #!/usr/bin/env bash
 # set -euo pipefail
 # export $(grep -v '^#' .env | xargs -d '\n')
-sudo apt install git -y
+
 sudo apt update && sudo apt -y upgrade
+# Install Git:
+sudo apt install git -y
+# Check if installed
+git --version
+# Generate SSH key
+ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+
+
 curl -fsSL https://ollama.ai/install.sh | sh
+# export OLLAMA_MODELS="/home/ubuntu/recruitu-app/RecruitU/models"
+
 ollama pull llama3.1:8b
 ollama serve
 
-export OLLAMA_MODELS="/home/ubuntu/recruitu-app/RecruitU/models"
 sudo systemctl stop ollama
 
 python3 -m venv .venv

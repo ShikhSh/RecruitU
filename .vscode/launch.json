@@ -1,22 +1,3 @@
-    // {
-    //     "version": "0.2.0",
-    //     "configurations": [
-    //         {
-    //             "name": "Python: Uvicorn",
-    //             "type": "debugpy",
-    //             "request": "launch",
-    //             "module": "uvicorn",
-    //             "args": [
-    //                 "app.main:app", // Replace with your actual module:app
-    //                 "--reload",
-    //                 "--port",
-    //                 "8080"
-    //             ],
-    //             "cwd": "${workspaceFolder}", // Adjust if your app is in a subfolder
-    //             "pythonPath": "${workspaceFolder}/.venv/bin/python"
-    //         }
-    //     ]
-    // }
 {
     "version": "0.2.0",
     "configurations": [
