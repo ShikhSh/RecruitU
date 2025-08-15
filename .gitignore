@@ -28,10 +28,6 @@ dist/
 .DS_Store
 Thumbs.db
 
-# Ollama/LLM models (if large)
-models/
-*.gguf
-
 # Misc
 *.log
 *.bak
