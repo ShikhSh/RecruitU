@@ -100,25 +100,28 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Frontend Setup
+### Frontend Setup
 
 ```bash
 cd front-end-app
-npm install
+sudo apt install npm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+source ~/.bashrc && nvm install 16.20.2
+source ~/.bashrc && nvm use 16.20.2
+npm install react react-dom
+npm install --save-dev typescript @types/react @types/react-dom
+```
+
+### In one terminal: Start frontend server
+```bash
 npm start
 ```
 The React app will run on [http://localhost:3000](http://localhost:3000).
 
-### 4. Run the Backend
-
-From the root directory:
-
+### In another terminal: Start backend server:
 ```bash
-bash run.sh
-```
-Or directly:
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+cd ../app
+uvicorn app.main:app --reload --port 8000 --host 0.0.0.0
 ```
 
 ---

@@ -35,15 +35,24 @@ pip install -r requirements.txt
 # Install frontend dependencies
 cd front-end-app
 sudo apt install npm
-cd app/user-tile-ui
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+source ~/.bashrc && nvm install 16.20.2
 npm install react react-dom
 npm install --save-dev typescript @types/react @types/react-dom
-npm start
-source ../.venv/bin/activate
-uvicorn app.main:app --reload --port 8000 --host 0.0.0.0
 
-ollama serve
-sudo systemctl stop ollama
+# # Start frontend server
+# npm start
+
+# # Start backend server
+# cd ../app
+# uvicorn app.main:app --reload --port 8000 --host 0.0.0.0
+
+# # Start Ollama server
+# # In a separate terminal, run:
+# ollama serve
+
+# # Stop Ollama server
+# sudo systemctl stop ollama
 
 ## pytest==8.3.2
 # pytest-asyncio==0.23.8
