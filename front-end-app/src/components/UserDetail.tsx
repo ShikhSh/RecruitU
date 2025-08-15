@@ -11,8 +11,23 @@ type User = {
   school: string;
   country: string;
   profile_pic_url?: string;
-  undergrad?: any;
-  current_company?: any;
+  undergrad?: {
+    ends_at?: { year?: number };
+    school?: string;
+    grade?: string;
+    activities_and_societies?: string;
+    degree_name?: string;
+    field_of_study?: string;
+    description?: string;
+  } | null;
+  current_company?: {
+    ends_at?: { year?: number };
+    location?: string;
+    title?: string;
+    starts_at?: string;
+    description?: string;
+    company?: string;
+  } | null;
   previous_titles?: string;
 };
 
@@ -129,7 +144,7 @@ const UserDetail: React.FC<Props> = ({ user, onClose, suggestions }) => (
         )}
         {user.undergrad && (
           <div>
-            <strong style={{ color: accentLight }}>Undergraduate:</strong> {user.undergrad.school} (
+            <strong style={{ color: accentLight }}>Undergraduate:</strong> {user.school} (
             {user.undergrad.ends_at?.year})
           </div>
         )}

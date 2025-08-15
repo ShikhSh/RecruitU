@@ -1,8 +1,9 @@
 {
-  "instructions": "You are given a list of natural language search queries about people. For each query, extract the relevant fields from the following schema:\n\nname: Optional[str] = None\ncurrent_company: Optional[str] = None\nprevious_company: Optional[str] = None\nsector: Optional[str] = Field(default=None, description=\"CONSULTING or FINANCE\")\ntitle: Optional[str] = None\nrole: Optional[str] = None\nschool: Optional[str] = None\nundergraduate_year: Optional[int] = None\ncity: Optional[str] = None\npage: int = 1\ncount: int = 20\n\nFill only the fields that are explicitly mentioned in the query.\n\nOutput only valid JSON objects (one per line), with no explanations or extra text.\n",
+  "instructions": "You are given a list of natural language search queries about people. For each query, extract the relevant fields from the following schema:\n\nname: Optional[str] = None(PROPER NOUN OF A PERSON ONLY)\ncurrent_company: Optional[str] = None\nprevious_company: Optional[str] = None\nsector: Optional[str] = Field(default=None, description=\"CONSULTING or FINANCE\")\ntitle: Optional[str] = None\nrole: Optional[str] = None\nschool: Optional[str] = None\nundergraduate_year: Optional[int] = None\ncity: Optional[str] = None\npage: int = 1\ncount: int = 20\n\nFill only the fields that are explicitly mentioned in the query. \n Be careful only to include proper nouns and not common nouns. \n\nOutput only valid JSON objects (one per line), with no explanations or extra text.\n",
   "examples": [
     { "input": "Jessican from Wharton", "output": "{\"name\":\"Jessican\",\"school\":\"Wharton\"}" },
     { "input": "Jessica at Wharton", "output": "{\"name\":\"Jessica\",\"school\":\"Wharton\"}" },
-    { "input": "Jessica who graduated from Wharton in 2019", "output": "{\"name\":\"Jessica\",\"school\":\"Wharton\",\"undergraduate_year\":2019}" }
+    { "input": "Jessica who graduated from Wharton in 2019", "output": "{\"name\":\"Jessica\",\"school\":\"Wharton\",\"undergraduate_year\":2019}" },
+    { "input": "people who graduated from Wharton in 2019", "output": "{\"school\":\"Wharton\",\"undergraduate_year\":2019}" }
   ]
 }

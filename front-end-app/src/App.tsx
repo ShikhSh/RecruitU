@@ -12,8 +12,24 @@ type User = {
   previous_companies: string;
   school: string;
   country: string;
-  undergrad?: any;
-  current_company?: any;
+  profile_pic_url?: string;
+  undergrad?: {
+    ends_at?: { year?: number };
+    school?: string;
+    grade?: string;
+    activities_and_societies?: string;
+    degree_name?: string;
+    field_of_study?: string;
+    description?: string;
+  } | null;
+  current_company?: {
+    ends_at?: { year?: number };
+    location?: string;
+    title?: string;
+    starts_at?: string;
+    description?: string;
+    company?: string;
+  } | null;
   previous_titles?: string;
 };
 
@@ -35,13 +51,38 @@ const handleUserClick = async (user: User) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userA: referenceUser,
-        userB: user,
+        currentUser: referenceUser,
+        inquiredUser: user,
       }),
     })
       .then(res => res.json())
-      .then(data => setSuggestions(data.suggestions))
-      .catch(() => setSuggestions(["Could not fetch suggestions."]));
+      .then(data => {
+        console.log("Raw suggestion data:", data);
+        
+        // Ensure suggestions is an array of strings
+        if (data.suggestions && Array.isArray(data.suggestions)) {
+          const stringSuggestions = data.suggestions.map((suggestion: any) => {
+            if (typeof suggestion === 'string') {
+              return suggestion;
+            } else if (typeof suggestion === 'object' && suggestion !== null) {
+              // If it's an object, try to extract meaningful text
+              if (suggestion.message) return String(suggestion.message);
+              if (suggestion.topic) return String(suggestion.topic);
+              if (suggestion.context) return String(suggestion.context);
+              return String(suggestion);
+            } else {
+              return String(suggestion);
+            }
+          });
+          setSuggestions(stringSuggestions);
+        } else {
+          setSuggestions(["Could not generate suggestions."]);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching suggestions:", error);
+        setSuggestions(["Could not fetch suggestions."]);
+      });
   }
 };
 
@@ -49,30 +90,26 @@ const handleUserClick = async (user: User) => {
     e.preventDefault();
     setLoading(true);
     console.log("Before Search");
-    const res = await fetch("/search_nl", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, overrides: {} }),
-    });
-    const data = await res.json();
-    console.log("Search results:", data);
-    setUsers(
-      data.results.results.map((r: any) => ({
-        ...r.document,
-        id: r.document.id,
-        full_name: r.document.full_name,
-        title: r.document.title,
-        company_name: r.document.company_name || (r.document.current_company?.company ?? ""),
-        city: r.document.city,
-        linkedin: r.document.linkedin,
-        previous_companies: r.document.previous_companies,
-        school: r.document.school,
-        country: r.document.country,
-        undergrad: r.document.undergrad,
-        current_company: r.document.current_company,
-        previous_titles: r.document.previous_titles,
-      }))
-    );
+    try {
+      const res = await fetch("/search_nl", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, overrides: {} }),
+      });
+      const data = await res.json();
+      console.log("Search results:", data);
+      
+      // The new API structure returns formatted results directly
+      if (data.results && Array.isArray(data.results)) {
+        setUsers(data.results);
+      } else {
+        console.error("Unexpected data structure:", data);
+        setUsers([]);
+      }
+    } catch (error) {
+      console.error("Search error:", error);
+      setUsers([]);
+    }
     setLoading(false);
   };
   return (
@@ -84,9 +121,19 @@ const handleUserClick = async (user: User) => {
       <form
         onSubmit={async e => {
           e.preventDefault();
-          const res = await fetch(`/people?ids=${referenceUserId}`);
-          const data = await res.json();
-          setReferenceUser(data);
+          try {
+            const res = await fetch(`/people?ids=${referenceUserId}`);
+            const data = await res.json();
+            console.log("Reference user data:", data);
+            if (data.error) {
+              alert(`Error: ${data.error}`);
+            } else {
+              setReferenceUser(data);
+            }
+          } catch (error) {
+            console.error("Error fetching reference user:", error);
+            alert("Failed to fetch user details");
+          }
         }}
         style={{ marginBottom: 24, textAlign: "center" }}
       >

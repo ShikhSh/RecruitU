@@ -1,9 +1,8 @@
 {
     "version": "0.2.0",
     "configurations": [
-        
         {
-            "name": "Python Debugger: FastAPI",
+            "name": "Backend Python Debugger: FastAPI",
             "type": "debugpy",
             "request": "launch",
             "module": "uvicorn",
@@ -17,7 +16,7 @@
             ],
             "jinja": true
             ,
-            "python": "/home/ubuntu/recruitu-app/.venv/bin/python"// "/Users/shiks/Documents/take-home-assignments/recruitU/recruitu-app/.venv/bin/python3.9"
+            "python": "/home/ubuntu/.venv/bin/python"
         }
     ]
 }

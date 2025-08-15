@@ -136,3 +136,9 @@ uvicorn app.main:app --reload --port 8000 --host 0.0.0.0
   - Click a user to view details and get conversation suggestions
 
 ---
+
+
+### Sample Queries Tested:
+- someone who works in Parrish
+- folks from Wharton
+- graduates from Wharton
