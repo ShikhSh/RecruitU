@@ -9,7 +9,7 @@ RecruitU-LateralGPT is an application designed to facilitate recruitment process
 
 ```
 recruitu-app/
-├── app/
+├── backend-app/
 │   ├── main.py            # FastAPI entry point
 │   ├── config.py          # Configuration settings
 │   ├── clients.py         # Client classes for external services
@@ -121,7 +121,7 @@ The React app will run on [http://localhost:3000](http://localhost:3000).
 ### In another terminal: Start backend server:
 ```bash
 cd ../app
-uvicorn app.main:app --reload --port 8000 --host 0.0.0.0
+uvicorn backend_app.main:app --reload --port 8000 --host 0.0.0.0
 ```
 
 ---

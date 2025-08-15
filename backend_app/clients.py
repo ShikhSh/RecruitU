@@ -1,6 +1,6 @@
 import httpx
 from typing import Dict, List, Optional
-from app.config import Settings
+from backend_app.config import Settings
 
 class PeopleAPI:
     async def search(self, params: Dict, settings: Settings):

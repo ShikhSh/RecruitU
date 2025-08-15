@@ -3,16 +3,16 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from typing import List, Dict, Any
-from app.config import Settings, get_settings
-from app.clients import people_api
-from app.nl_parser_llm import generate_query_with_llm, call_llm_for_suggestions_async
-from app.schemas import NLSearchRequest, SearchResponse, PeopleResponse
+from backend_app.config import Settings, get_settings
+from backend_app.clients import people_api
+from backend_app.nl_parser_llm import generate_query_with_llm, call_llm_for_suggestions_async
+from backend_app.schemas import NLSearchRequest, SearchResponse, PeopleResponse
 import os
 
 app = FastAPI(title="RecruitU LateralGPT")
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
+app.mount("/static", StaticFiles(directory="backend_app/static"), name="static")
+templates = Jinja2Templates(directory="backend_app/templates")
 
 @app.get("/health")
 def health():

@@ -37,6 +37,7 @@ cd front-end-app
 sudo apt install npm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 source ~/.bashrc && nvm install 16.20.2
+source ~/.bashrc && nvm use 16.20.2
 npm install react react-dom
 npm install --save-dev typescript @types/react @types/react-dom
 
@@ -45,7 +46,7 @@ npm install --save-dev typescript @types/react @types/react-dom
 
 # # Start backend server
 # cd ../app
-# uvicorn app.main:app --reload --port 8000 --host 0.0.0.0
+# uvicorn backend_app.main:app --reload --port 8000 --host 0.0.0.0
 
 # # Start Ollama server
 # # In a separate terminal, run:
