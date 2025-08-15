@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RecruitU — LateralGPT</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main>
+    <h1>RecruitU — LateralGPT</h1>
+    <form id="nl-form">
+      <label>Natural language query</label>
+      <input id="q" placeholder="e.g., CMU '19 M&A at Evercore or Gugg in NYC" />
+      <button type="submit">Search</button>
+    </form>
+
+    <div id="filters"></div>
+    <div id="results"></div>
+  </main>
+
+  <script>
+    async function searchNL(q){
+      const res = await fetch('/search_nl', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query:q})});
+      return res.json();
+    }
+
+    function renderFilters(f){
+      // const el = document.getElementById('filters');
+      const el = document.getElementById('results');
+      el.innerHTML = '<h3>Filters</h3><pre>'+JSON.stringify(f, null, 2)+'</pre>';
+    }
+
+    // function renderResults(data){
+    //   const el = document.getElementById('results');
+    //   const rows = data.results || [];
+    //   if(!rows.length){ el.innerHTML = '<p>No results.</p>'; return; }
+    //   // replace the columns block
+    //   const th = ['Name','Title','Current Company','City','Undergrad Year','Sector'];
+    //   const cols = ['name','title','current_company','city','undergraduate_year','sector'];
+
+    //   let html = `<div class="toolbar"><a href="/export/csv?${new URLSearchParams(data.filters)}">Export CSV</a></div>`;
+    //   html += '<table><thead><tr>'+th.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>';
+    //   for(const r of rows){
+    //      html += '<tr>'+cols.map(c=>`<td>${(r[c]??'')}</td>`).join('')+'</tr>';
+    //   }
+    //   html += '</tbody></table>';
+    //   el.innerHTML = html;
+    // }
+
+    function renderResults(data){
+      const el = document.getElementById('results');
+      el.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+    }
+
+    document.getElementById('nl-form').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const q = document.getElementById('q').value;
+      const data = await searchNL(q);
+      // renderFilters(data.filters||{});
+      renderFilters(data.results||{});
+      renderResults(data.results);
+    });
+  </script>
+</body>
+</html>

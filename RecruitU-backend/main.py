@@ -1,39 +1,14 @@
 """
-RecruitU LateralGPT - FastAPI Backend Server
+RecruitU Backend - FastAPI Application
 
 This module provides the main FastAPI application for RecruitU, a professional networking
-platform with AI-powered features. The backend includes:
-
-- Natural language search parsing using LLMs (Ollama)
-- Conversation suggestion generation between users
-- User profile management and search proxy
-- Comprehensive caching mechanisms for performance optimization
-- Health monitoring and cache management endpoints
-
-Architecture:
-- FastAPI for REST API endpoints
-- Pydantic for data validation and serialization
-- Ollama for LLM integration (query parsing and suggestions)
-- In-memory TTL caches for performance optimization
-- Async/await pattern for non-blocking operations
-
-Caching Strategy:
-1. Query Parsing Cache (2 hour TTL):
-   - Caches LLM parsing results for natural language queries
-   - Reduces redundant LLM API calls
-   - Improves response time for repeated queries
-
-2. Conversation Suggestions Cache (1 hour TTL):
-   - Caches conversation suggestions between user pairs
-   - Bidirectional caching based on user IDs
-   - Automatic expiration and cleanup
+platform with AI-powered features.
 
 Environment Variables:
 - LLM_PROVIDER: LLM provider type ('ollama' or 'none')
 - OLLAMA_HOST: Ollama server URL (default: http://localhost:11434)
 - OLLAMA_MODEL: Ollama model name (default: llama3.1:8b)
-- PEOPLE_API_URL: External people API endpoint
-- PEOPLE_API_KEY: Authentication key for people API
+- PEOPLE_API_BASE: External people API endpoint
 
 API Endpoints:
 - GET /health: Health check with cache maintenance
@@ -43,9 +18,6 @@ API Endpoints:
 - POST /suggest_conversation: AI-powered conversation suggestions
 - GET /people: User profile proxy endpoint
 - GET /: Main application interface
-
-Author: RecruitU Team
-Version: 2.0 (with caching and comprehensive documentation)
 """
 
 from fastapi import FastAPI, Depends, Query, Request, Body
@@ -53,116 +25,39 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from typing import List, Dict, Any
-from backend_app.config import Settings, get_settings
-from backend_app.clients import people_api
-from backend_app.nl_parser_llm import generate_query_with_llm, call_llm_for_suggestions_async, query_parsing_cache
-from backend_app.schemas import NLSearchRequest, SearchResponse, PeopleResponse
 import os
-import time
-import hashlib
+import sys
+from pathlib import Path
+
+# Add the current directory to Python path to allow imports from src
+current_dir = Path(__file__).parent
+sys.path.insert(0, str(current_dir))
+
+# Import from our refactored modules
+from src import (
+    generate_query_with_llm, 
+    call_llm_for_suggestions_async, 
+    query_parsing_cache, 
+    suggestions_cache,
+    people_api,
+    NLSearchRequest,
+    PeopleResponse,
+    filter_search_user_data_for_suggestions,
+    filter_user_profile_for_suggestions
+)
+from src.config import Settings, get_settings
 
 # Initialize FastAPI application
-app = FastAPI(title="RecruitU LateralGPT")
+app = FastAPI(
+    title="RecruitU Backend",
+    description="AI-powered professional networking platform with modular architecture",
+    version="3.0.0"
+)
 
 # Mount static files and templates
-app.mount("/static", StaticFiles(directory="backend_app/static"), name="static")
-templates = Jinja2Templates(directory="backend_app/templates")
+app.mount("/static", StaticFiles(directory="/home/ubuntu/RecruitU/RecruitU-backend/static"), name="static")
+templates = Jinja2Templates(directory="/home/ubuntu/RecruitU/RecruitU-backend/templates")
 
-# In-memory cache for conversation suggestions with TTL support
-class SuggestionsCache:
-    """
-    Time-based cache for conversation suggestions between users.
-    
-    This cache stores LLM-generated conversation suggestions to avoid redundant
-    API calls for the same user pairs. It includes automatic expiration based
-    on TTL (Time To Live) and cleanup functionality.
-    
-    Attributes:
-        cache (Dict): Internal storage for cached suggestion entries
-        ttl (int): Time-to-live in seconds for cache entries
-    """
-    
-    def __init__(self, ttl_seconds: int = 3600):  # 1 hour TTL
-        """
-        Initialize the suggestions cache.
-        
-        Args:
-            ttl_seconds (int): Time-to-live for cache entries in seconds (default: 1 hour)
-        """
-        self.cache: Dict[str, Dict[str, Any]] = {}
-        self.ttl = ttl_seconds
-    
-    def _generate_key(self, user_a: Dict, user_b: Dict) -> str:
-        """
-        Generate a cache key based on user IDs.
-        
-        Creates a consistent key for caching suggestions between two users,
-        regardless of the order they're provided in.
-        
-        Args:
-            user_a (Dict): First user's profile data
-            user_b (Dict): Second user's profile data
-            
-        Returns:
-            str: Cache key for the user pair
-        """
-        user_a_id = user_a.get('id', str(user_a))
-        user_b_id = user_b.get('id', str(user_b))
-        return f"{user_a_id}-{user_b_id}"
-    
-    def get(self, user_a: Dict, user_b: Dict) -> List[str] | None:
-        """
-        Retrieve cached suggestions if they exist and haven't expired.
-        
-        Args:
-            user_a (Dict): First user's profile data
-            user_b (Dict): Second user's profile data
-            
-        Returns:
-            List[str] | None: Cached suggestions if found and valid, None otherwise
-        """
-        key = self._generate_key(user_a, user_b)
-        if key in self.cache:
-            entry = self.cache[key]
-            if time.time() - entry['timestamp'] < self.ttl:
-                return entry['suggestions']
-            else:
-                # Remove expired entry
-                del self.cache[key]
-        return None
-    
-    def set(self, user_a: Dict, user_b: Dict, suggestions: List[str]) -> None:
-        """
-        Cache suggestions with current timestamp.
-        
-        Args:
-            user_a (Dict): First user's profile data
-            user_b (Dict): Second user's profile data
-            suggestions (List[str]): List of conversation suggestions to cache
-        """
-        key = self._generate_key(user_a, user_b)
-        self.cache[key] = {
-            'suggestions': suggestions,
-            'timestamp': time.time()
-        }
-    
-    def clear_expired(self) -> None:
-        """
-        Remove expired entries from cache.
-        
-        This method is typically called during health checks to maintain
-        cache hygiene and prevent memory leaks.
-        """
-        current_time = time.time()
-        expired_keys = [
-            key for key, entry in self.cache.items()
-            if current_time - entry['timestamp'] >= self.ttl
-        ]
-        for key in expired_keys:
-            del self.cache[key]
-
-# Initialize cache instances
-suggestions_cache = SuggestionsCache(ttl_seconds=3600)  # 1 hour cache
 
 @app.get("/health")
 def health():
@@ -173,15 +68,35 @@ def health():
     tasks like cleaning up expired cache entries.
     
     Returns:
-        Dict: Health status and current cache size
+        Dict: Health status and current cache statistics
     """
     # Clean up expired cache entries on health checks
-    suggestions_cache.clear_expired()
-    query_parsing_cache.clear_expired()
-    return {"ok": True, "cache_size": len(suggestions_cache.cache)}
+    suggestions_expired = suggestions_cache.clear_expired()
+    query_parsing_expired = query_parsing_cache.clear_expired()
+    
+    # Get cache statistics
+    suggestions_stats = suggestions_cache.get_stats()
+    query_parsing_stats = query_parsing_cache.get_stats()
+    
+    return {
+        "status": "healthy",
+        "cache_maintenance": {
+            "suggestions_expired_cleared": suggestions_expired,
+            "query_parsing_expired_cleared": query_parsing_expired
+        },
+        "cache_stats": {
+            "suggestions": suggestions_stats,
+            "query_parsing": query_parsing_stats
+        }
+    }
 
 @app.post("/cache/clear")
-def clear_caches(cache_type: str = Query(default="all", description="Type of cache to clear: 'suggestions', 'query_parsing', or 'all'")):
+def clear_caches(
+    cache_type: str = Query(
+        default="all", 
+        description="Type of cache to clear: 'suggestions', 'query_parsing', or 'all'"
+    )
+):
     """
     Clear specified caches and return statistics.
     
@@ -197,8 +112,7 @@ def clear_caches(cache_type: str = Query(default="all", description="Type of cac
     result = {"cleared": [], "stats": {}}
     
     if cache_type in ["suggestions", "all"]:
-        suggestions_count = len(suggestions_cache.cache)
-        suggestions_cache.cache.clear()
+        suggestions_count = suggestions_cache.clear()
         result["cleared"].append("suggestions")
         result["stats"]["suggestions_cleared"] = suggestions_count
     
@@ -208,6 +122,7 @@ def clear_caches(cache_type: str = Query(default="all", description="Type of cac
         result["stats"]["query_parsing_cleared"] = query_parsing_count
     
     return result
+
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -223,6 +138,7 @@ async def home(request: Request):
         HTMLResponse: Rendered HTML template
     """
     return templates.TemplateResponse("index.html", {"request": request})
+
 
 @app.post("/suggest_conversation")
 async def suggest_conversation(payload: Dict[str, Any] = Body(...)):
@@ -248,10 +164,14 @@ async def suggest_conversation(payload: Dict[str, Any] = Body(...)):
     if not userA or not userB:
         return {"suggestions": ["Unable to generate suggestions - missing user data."]}
     
-    # Check cache first for performance optimization
-    cached_suggestions = suggestions_cache.get(userA, userB)
+    # Filter user data for consistency in caching and LLM prompts
+    filtered_userA = filter_user_profile_for_suggestions(userA)
+    filtered_userB = filter_search_user_data_for_suggestions(userB)
+    
+    # Check cache first for performance optimization (using filtered data for cache key)
+    cached_suggestions = suggestions_cache.get(filtered_userA, filtered_userB)
     if cached_suggestions:
-        print(f"Returning cached suggestions for users {userA.get('id', 'unknown')}-{userB.get('id', 'unknown')}")
+        print(f"Returning cached suggestions for users {filtered_userA.get('full_name', 'unknown')}-{filtered_userB.get('full_name', 'unknown')}")
         return {"suggestions": cached_suggestions}
     
     # Generate new suggestions if not cached
@@ -260,20 +180,30 @@ async def suggest_conversation(payload: Dict[str, Any] = Body(...)):
         suggestions = []
         try:
             prompt = (
-                f"User A: {userA}\n"
-                f"User B: {userB}\n"
+                f"User A: {filtered_userA}\n"
+                f"User B: {filtered_userB}\n"
                 "Find common backgrounds and suggest 2-3 ways User A can start a conversation with User B."
             )
+            
             suggestions = await call_llm_for_suggestions_async(prompt)
-            suggestions_cache.set(userA, userB, suggestions)
-            print(f"LLM generated suggestions: {suggestions}")
+            if suggestions:
+                # Cache using filtered data for consistency
+                suggestions_cache.set(filtered_userA, filtered_userB, suggestions)
+                print(f"LLM generated suggestions: {suggestions}")
         except Exception as llm_error:
             print(f"LLM failed, using rule-based suggestions: {llm_error}")
             suggestions = []
         
+        # Fallback to default suggestions if LLM fails
         if not suggestions:
-            suggestions = ["Consider reaching out to discuss shared professional interests."]
-        return {"suggestions": suggestions}                
+            suggestions = [
+                "Consider reaching out to discuss shared professional interests.",
+                "You might connect over industry trends and insights.",
+                "Consider starting with a comment about their recent career achievements."
+            ]
+            
+        return {"suggestions": suggestions}
+        
     except Exception as e:
         print(f"Error in suggest_conversation: {e}")
         fallback_suggestions = [
@@ -282,6 +212,7 @@ async def suggest_conversation(payload: Dict[str, Any] = Body(...)):
             "You might start with a comment about their recent career achievements."
         ]
         return {"suggestions": fallback_suggestions}
+
 
 @app.post("/search_nl")
 async def search_nl(req: NLSearchRequest, settings: Settings = Depends(get_settings)):
@@ -299,6 +230,8 @@ async def search_nl(req: NLSearchRequest, settings: Settings = Depends(get_setti
     Returns:
         SearchResponse: Formatted search results
     """
+    print(f"Received natural language search query: '{req.query}'")
+    
     # Check if LLM is available and configured
     use_llm = (os.getenv("LLM_PROVIDER") and os.getenv("LLM_PROVIDER").lower() != "none")
     parsed = {}
@@ -307,8 +240,10 @@ async def search_nl(req: NLSearchRequest, settings: Settings = Depends(get_setti
         try:
             # Use LLM to parse the natural language query
             parsed = generate_query_with_llm(req.query)
+            print(f"LLM parsed query into: {parsed}")
         except Exception as e:
             print(f"LLM parsing failed: {e}")
+            # Continue with empty parsed dict - will use defaults
 
     # Set default pagination parameters
     parsed.setdefault("page", 1)
@@ -316,7 +251,10 @@ async def search_nl(req: NLSearchRequest, settings: Settings = Depends(get_setti
 
     # Execute search with parsed parameters
     results = await people_api.search_with_formatted_results(parsed, settings=settings)
+    print(f"Search returned {len(results.get('results', []))} results")
+    
     return results
+
 
 @app.get("/people", response_model=PeopleResponse)
 async def proxy_people(
@@ -340,9 +278,15 @@ async def proxy_people(
     if not ids or not ids[0]:
         return {"error": "User ID is required"}
 
+    print(f"Fetching user information for ID: {ids[0]}")
+    
     # Retrieve user information from the people API
     user_information = await people_api.get_user_information(ids[0], settings)
     if not user_information:
         return {"error": "User not found"}
     
     return user_information
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

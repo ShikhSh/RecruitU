@@ -1,45 +1,65 @@
 # RecruitU
 
 ## Project Overview
-RecruitU-LateralGPT is an application designed to facilitate recruitment processes through natural language search and some AI powered features to enhance networking efforts.
+RecruitU-LateralGPT is an application designed to facilitate recruitment processes through natural language search and AI-powered features to enhance networking efforts. The application includes intelligent caching mechanisms for improved performance and cost-effective LLM usage.
 
 ---
 
 ## File Structure
 
 ```
-recruitu-app/
-├── backend-app/
-│   ├── main.py            # FastAPI entry point
+RecruitU/
+├── backend_app/           # FastAPI backend application
+│   ├── main.py            # FastAPI entry point with caching endpoints
 │   ├── config.py          # Configuration settings
 │   ├── clients.py         # Client classes for external services
 │   ├── schemas.py         # Data schemas for validation and serialization
-│   ├── nl_parser_llm.py   # Natural language parsing and LLM integration
+│   ├── nl_parser_llm.py   # Natural language parsing, LLM integration & caching
 │   ├── similarity.py      # Similarity metrics functions
 │   ├── utils.py           # Utility functions
+│   ├── requirements.txt   # Python dependencies
+│   ├── prompts/
+│   │   └── nl_parser.json # LLM prompts configuration
 │   ├── templates/
 │   │   └── index.html     # Main HTML template
 │   └── static/
 │       └── styles.css     # CSS styles for the application
-├── font-end-app/          # React frontend (user-tile-ui)
+├── frontend_app/          # React frontend application
 │   ├── src/
-│   └── ...                # React app source and config
+│   │   ├── App.tsx        # Main React component with caching
+│   │   ├── components/    # React components
+│   │   └── data/          # User data and types
+│   └── package.json       # Node.js dependencies
 ├── tests/
 │   └── test_routes.py     # Unit tests for application routes
-├── .env.example           # Template for environment variables
-├── requirements.txt       # Python dependencies
-├── Dockerfile             # Instructions for building Docker image
+├── .vscode/
+│   └── launch.json        # VS Code debugging configuration
 ├── README.md              # Project documentation
-└── run.sh                 # Shell script for running the application
+└── run.sh                 # Shell script for environment setup
 ```
 
 ---
 
 ## Features
 
-- **LateralGPT**: `/search_nl` converts natural language like `CMU '19 M&A at Evercore or Gugg in NYC` into a structured `/search` payload and returns results.
+### Core Functionality
+- **LateralGPT**: `/search_nl` converts natural language like `CMU '19 M&A at Evercore or Gugg in NYC` into a structured search payload and returns results.
 - **Pass‑through**: `/search` and `/people` forward to the official People API.
-- **Conversation Suggestions**: When viewing a user, get LLM-powered suggestions for conversation starters based on common backgrounds with a reference user.
+- **Conversation Suggestions**: When viewing a user, get LLM-powered suggestions for conversation starters based on common backgrounds.
+
+### Performance & Caching
+- **Query Parsing Cache**: TTL-based caching (2 hours) for LLM query parsing results to reduce API calls
+- **Conversation Suggestions Cache**: TTL-based caching (1 hour) for conversation suggestions between user pairs
+- **Frontend Caching**: Map-based caching in React for conversation suggestions per user pair
+- **Cache Management**: Endpoints for cache statistics, clearing, and maintenance
+
+### API Endpoints
+- `GET /health` - Health check with cache cleanup
+- `POST /cache/clear` - Clear specific or all caches
+- `GET /cache/stats` - Get comprehensive cache statistics
+- `POST /search_nl` - Natural language search with caching
+- `POST /suggest_conversation` - AI conversation suggestions with caching
+- `GET /people` - User profile retrieval
 
 ---
 
@@ -97,13 +117,13 @@ Create a virtual environment and install dependencies:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r backend_app/requirements.txt
 ```
 
 ### Frontend Setup
 
 ```bash
-cd front-end-app
+cd frontend_app
 sudo apt install npm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 source ~/.bashrc && nvm install 16.20.2
@@ -112,17 +132,36 @@ npm install react react-dom
 npm install --save-dev typescript @types/react @types/react-dom
 ```
 
-### In one terminal: Start frontend server
+### Running the Application
+
+#### Start frontend server (Terminal 1):
 ```bash
+cd frontend_app
 npm start
 ```
 The React app will run on [http://localhost:3000](http://localhost:3000).
 
-### In another terminal: Start backend server:
+#### Start backend server (Terminal 2):
 ```bash
-cd ../app
+cd RecruitU
+source .venv/bin/activate
 uvicorn backend_app.main:app --reload --port 8000 --host 0.0.0.0
 ```
+
+The FastAPI backend will run on [http://localhost:8000](http://localhost:8000).
+
+---
+
+## Cache Management
+
+### Cache Types
+1. **Query Parsing Cache**: Stores LLM parsing results for natural language queries (TTL: 2 hours)
+2. **Conversation Suggestions Cache**: Stores conversation suggestions between user pairs (TTL: 1 hour)
+
+### Cache Endpoints
+- `POST /cache/clear?cache_type=all` - Clear all caches
+- `POST /cache/clear?cache_type=suggestions` - Clear only conversation suggestions cache
+- `POST /cache/clear?cache_type=query_parsing` - Clear only query parsing cache
 
 ---
 
@@ -132,8 +171,8 @@ uvicorn backend_app.main:app --reload --port 8000 --host 0.0.0.0
 - Access the React UI at [http://localhost:3000](http://localhost:3000)
 - Use the UI to:
   - Fetch a reference user by ID
-  - Search for users using natural language
-  - Click a user to view details and get conversation suggestions
+  - Search for users using natural language (cached for performance)
+  - Click a user to view details and get conversation suggestions (cached per user pair)
 
 ---
 

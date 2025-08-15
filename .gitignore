@@ -1,5 +1,6 @@
 # Python
-app/__pycache__/*
+*/__pycache__/*
+RecruitU-backend/__pycache__/*
 *.py[cod]
 *.pyo
 *.pyd

@@ -17,6 +17,23 @@
             "jinja": true
             ,
             "python": "/home/ubuntu/.venv/bin/python"
+        },
+        {
+            "name": "New Backend Python Debugger: FastAPI",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "RecruitU-backend.main:app",
+                "--reload",
+                "--port",
+                "8000",
+                "--host",
+                "0.0.0.0"
+            ],
+            "jinja": true
+            ,
+            "python": "/home/ubuntu/.venv/bin/python"
         }
     ]
 }
