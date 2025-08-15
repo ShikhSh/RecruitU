@@ -43,6 +43,7 @@ class PeopleAPI:
             "certifications": linkedin.get("certifications"),
             "experiences": linkedin.get("experiences"),
             "full_name": linkedin.get("full_name"),
+            "id": linkedin.get("id"),
         }
 
     async def get_user_information(self, user_id: str, settings: Settings) -> Optional[Dict]:

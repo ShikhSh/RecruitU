@@ -41,12 +41,29 @@ const App: React.FC = () => {
   const [referenceUser, setReferenceUser] = useState<User | null>(null);
   const [selected, setSelected] = useState<User | null>(null);
   const [suggestions, setSuggestions] = useState<string[] | null>(null);
+  
+  // Cache for conversation suggestions - key: "referenceUserId-targetUserId"
+  const [suggestionsCache, setSuggestionsCache] = useState<Map<string, string[]>>(new Map());
 
 const handleUserClick = async (user: User) => {
   setSelected(user);
   setSuggestions(null); // Reset suggestions for new user
+  
   if (referenceUser) {
-    // Fetch suggestions in the background
+    // Create cache key for this user pair
+    const cacheKey = `${referenceUser.id}-${user.id}`;
+    
+    // Check if we already have cached suggestions for this pair
+    if (suggestionsCache.has(cacheKey)) {
+      console.log("Using cached suggestions for", cacheKey);
+      setSuggestions(suggestionsCache.get(cacheKey) || []);
+      return;
+    }
+    
+    // Show loading state
+    setSuggestions(null);
+    
+    // Fetch suggestions from API
     fetch("/suggest_conversation", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -60,8 +77,9 @@ const handleUserClick = async (user: User) => {
         console.log("Raw suggestion data:", data);
         
         // Ensure suggestions is an array of strings
+        let finalSuggestions: string[] = [];
         if (data.suggestions && Array.isArray(data.suggestions)) {
-          const stringSuggestions = data.suggestions.map((suggestion: any) => {
+          finalSuggestions = data.suggestions.map((suggestion: any) => {
             if (typeof suggestion === 'string') {
               return suggestion;
             } else if (typeof suggestion === 'object' && suggestion !== null) {
@@ -74,14 +92,19 @@ const handleUserClick = async (user: User) => {
               return String(suggestion);
             }
           });
-          setSuggestions(stringSuggestions);
         } else {
-          setSuggestions(["Could not generate suggestions."]);
+          finalSuggestions = ["Could not generate suggestions."];
         }
+        
+        // Cache the suggestions
+        setSuggestionsCache(prev => new Map(prev).set(cacheKey, finalSuggestions));
+        setSuggestions(finalSuggestions);
       })
       .catch((error) => {
         console.error("Error fetching suggestions:", error);
-        setSuggestions(["Could not fetch suggestions."]);
+        const errorSuggestions = ["Could not fetch suggestions."];
+        // Don't cache error responses
+        setSuggestions(errorSuggestions);
       });
   }
 };
