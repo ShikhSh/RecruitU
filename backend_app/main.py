@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from typing import List, Dict, Any
 from backend_app.config import Settings, get_settings
 from backend_app.clients import people_api
-from backend_app.nl_parser_llm import generate_query_with_llm, call_llm_for_suggestions_async
+from backend_app.nl_parser_llm import generate_query_with_llm, call_llm_for_suggestions_async, query_parsing_cache
 from backend_app.schemas import NLSearchRequest, SearchResponse, PeopleResponse
 import os
 import time
@@ -65,8 +65,26 @@ suggestions_cache = SuggestionsCache(ttl_seconds=3600)  # 1 hour cache
 def health():
     # Clean up expired cache entries on health checks
     suggestions_cache.clear_expired()
+    query_parsing_cache.clear_expired()
     return {"ok": True, "cache_size": len(suggestions_cache.cache)}
 
+@app.post("/cache/clear")
+def clear_caches(cache_type: str = Query(default="all", description="Type of cache to clear: 'suggestions', 'query_parsing', or 'all'")):
+    """Clear caches and return statistics"""
+    result = {"cleared": [], "stats": {}}
+    
+    if cache_type in ["suggestions", "all"]:
+        suggestions_count = len(suggestions_cache.cache)
+        suggestions_cache.cache.clear()
+        result["cleared"].append("suggestions")
+        result["stats"]["suggestions_cleared"] = suggestions_count
+    
+    if cache_type in ["query_parsing", "all"]:
+        query_parsing_count = query_parsing_cache.clear()
+        result["cleared"].append("query_parsing")
+        result["stats"]["query_parsing_cleared"] = query_parsing_count
+    
+    return result
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
