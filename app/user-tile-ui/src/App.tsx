@@ -19,9 +19,51 @@ type User = {
 
 const App: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
-  const [selected, setSelected] = useState<User | null>(null);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const [referenceUserId, setReferenceUserId] = useState("");
+  const [referenceUser, setReferenceUser] = useState<User | null>(null);
+  // const [suggestions, setSuggestions] = useState<string[]>([]);
+  // const [selected, setSelected] = useState<User | null>(null);
+
+  // const handleUserClick = async (user: User) => {
+  //   setSelected(user);
+  //   setSuggestions([]);
+  //   if (referenceUser) {
+  //     const res = await fetch("/suggest_conversation", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         userA: referenceUser,
+  //         userB: user,
+  //       }),
+  //     });
+  //     const data = await res.json();
+  //     setSuggestions(data.suggestions); // expects { suggestions: [...] }
+  //   }
+  // };
+  // ...other imports and state...
+const [selected, setSelected] = useState<User | null>(null);
+const [suggestions, setSuggestions] = useState<string[] | null>(null);
+
+const handleUserClick = async (user: User) => {
+  setSelected(user);
+  setSuggestions(null); // Reset suggestions for new user
+  if (referenceUser) {
+    // Fetch suggestions in the background
+    fetch("/suggest_conversation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userA: referenceUser,
+        userB: user,
+      }),
+    })
+      .then(res => res.json())
+      .then(data => setSuggestions(data.suggestions))
+      .catch(() => setSuggestions(["Could not fetch suggestions."]));
+  }
+};
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,31 +95,109 @@ const App: React.FC = () => {
     );
     setLoading(false);
   };
-
   return (
-    <div style={{ background: "#f6f8fa", minHeight: "100vh", padding: 32 }}>
-      <h1 style={{ textAlign: "center" }}>RecruitU — LateralGPT</h1>
-      <form onSubmit={handleSearch} style={{ textAlign: "center", marginBottom: 24 }}>
+  <div style={{ background: "#f6f8fa", minHeight: "100vh", padding: 32 }}>
+    <h1 style={{ textAlign: "center" }}>RecruitU — LateralGPT</h1>
+
+    {/* Step 1: Show fetch form if referenceUser is not set */}
+    {!referenceUser && (
+      <form
+        onSubmit={async e => {
+          e.preventDefault();
+          const res = await fetch(`/people?ids=${referenceUserId}`);
+          const data = await res.json();
+          setReferenceUser(data);
+        }}
+        style={{ marginBottom: 24, textAlign: "center" }}
+      >
         <input
           type="text"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search for users (e.g. Analyst in New York)..."
-          style={{ padding: 8, width: 320, fontSize: 16, borderRadius: 4, border: "1px solid #ccc" }}
+          value={referenceUserId}
+          onChange={e => setReferenceUserId(e.target.value)}
+          placeholder="Enter User ID for reference"
+          style={{ padding: 8, width: 220, marginRight: 8 }}
         />
-        <button type="submit" style={{ marginLeft: 12, padding: "8px 20px", fontSize: 16 }}>
-          Search
+        <button type="submit" style={{ padding: "8px 16px" }}>
+          Fetch Current User Details
         </button>
       </form>
-      {loading && <div style={{ textAlign: "center" }}>Loading...</div>}
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
-        {users.map(user => (
-          <UserTile key={user.id} user={user} onClick={() => setSelected(user)} />
-        ))}
-      </div>
-      {selected && <UserDetail user={selected} onClose={() => setSelected(null)} />}
-    </div>
-  );
+    )}
+
+    {/* Step 2: Show current user name and search only if referenceUser is set */}
+    {referenceUser && (
+      <>
+        <div style={{ textAlign: "center", marginBottom: 24, fontWeight: 600, fontSize: 20 }}>
+          Hi, {referenceUser.full_name || referenceUser.headline || "User"}
+        </div>
+        <form onSubmit={handleSearch} style={{ textAlign: "center", marginBottom: 24 }}>
+          <input
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search for users (e.g. Analyst in New York)..."
+            style={{ padding: 8, width: 320, fontSize: 16, borderRadius: 4, border: "1px solid #ccc" }}
+          />
+          <button type="submit" style={{ marginLeft: 12, padding: "8px 20px", fontSize: 16 }}>
+            Search
+          </button>
+        </form>
+        {loading && <div style={{ textAlign: "center" }}>Loading...</div>}
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
+          {users.map(user => (
+            <UserTile key={user.id} user={user} onClick={() => handleUserClick(user)} />
+          ))}
+        </div>
+        {selected && (
+          <UserDetail user={selected} onClose={() => setSelected(null)} suggestions={suggestions} />
+        )}
+      </>
+    )}
+  </div>
+);
+  // return (
+  //   <div style={{ background: "#f6f8fa", minHeight: "100vh", padding: 32 }}>
+  //     <h1 style={{ textAlign: "center" }}>RecruitU — LateralGPT</h1>
+  //     <form
+  //       onSubmit={async e => {
+  //         e.preventDefault();
+  //         const res = await fetch(`/people?ids=${referenceUserId}`);
+  //         const data = await res.json();
+  //         setReferenceUser(data);
+  //       }}
+  //       style={{ marginBottom: 24, textAlign: "center" }}
+  //     >
+  //       <input
+  //         type="text"
+  //         value={referenceUserId}
+  //         onChange={e => setReferenceUserId(e.target.value)}
+  //         placeholder="Enter User ID for reference"
+  //         style={{ padding: 8, width: 220, marginRight: 8 }}
+  //       />
+  //       <button type="submit" style={{ padding: "8px 16px" }}>Fetch Current User Details</button>
+  //     </form>
+  //     <form onSubmit={handleSearch} style={{ textAlign: "center", marginBottom: 24 }}>
+  //       <input
+  //         type="text"
+  //         value={query}
+  //         onChange={e => setQuery(e.target.value)}
+  //         placeholder="Search for users (e.g. Analyst in New York)..."
+  //         style={{ padding: 8, width: 320, fontSize: 16, borderRadius: 4, border: "1px solid #ccc" }}
+  //       />
+  //       <button type="submit" style={{ marginLeft: 12, padding: "8px 20px", fontSize: 16 }}>
+  //         Search
+  //       </button>
+  //     </form>
+  //     {loading && <div style={{ textAlign: "center" }}>Loading...</div>}
+  //     <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
+  //       {users.map(user => (
+  //         <UserTile key={user.id} user={user} onClick={() => handleUserClick(user)} />
+  //       ))}
+  //     </div>
+  //     {selected && (
+  //       <UserDetail user={selected} onClose={() => setSelected(null)} suggestions={suggestions} />
+  //     )}
+  //   </div>
+  // );
 };
 
 export default App;

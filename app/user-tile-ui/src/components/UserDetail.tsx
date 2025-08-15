@@ -19,12 +19,13 @@ type User = {
 type Props = {
   user: User;
   onClose: () => void;
+  suggestions?: string[] | null;
 };
 
 const accent = "#6366f1";
 const accentLight = "#a5b4fc";
 
-const UserDetail: React.FC<Props> = ({ user, onClose }) => (
+const UserDetail: React.FC<Props> = ({ user, onClose, suggestions }) => (
   <div
     style={{
       position: "fixed",
@@ -130,6 +131,19 @@ const UserDetail: React.FC<Props> = ({ user, onClose }) => (
           <div>
             <strong style={{ color: accentLight }}>Undergraduate:</strong> {user.undergrad.school} (
             {user.undergrad.ends_at?.year})
+          </div>
+        )}
+        {suggestions === null && (
+          <div style={{ marginTop: 24, color: "#a5b4fc" }}>Finding conversation starters...</div>
+        )}
+        {suggestions && suggestions.length > 0 && (
+          <div style={{ marginTop: 24, background: "#18181b", borderRadius: 12, padding: 16 }}>
+            <h3 style={{ color: "#a5b4fc" }}>Conversation Starters</h3>
+            <ul>
+              {suggestions.map((s, i) => (
+                <li key={i} style={{ margin: "8px 0", color: "#f3f4f6" }}>{s}</li>
+              ))}
+            </ul>
           </div>
         )}
       </div>

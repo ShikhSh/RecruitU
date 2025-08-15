@@ -6,7 +6,7 @@ from typing import Optional, List
 from app.config import Settings, get_settings
 from app.clients import people_api
 from app.nl_parser import parse_nl_query
-from app.nl_parser_llm import parse_with_llm
+from app.nl_parser_llm import parse_with_llm, call_llm_for_suggestions
 from app.similarity import rank_similar
 from app.schemas import NLSearchRequest, SearchResponse, PeopleResponse
 from app.utils import rows_to_csv
@@ -29,6 +29,22 @@ def health():
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+from fastapi import APIRouter, Body
+from typing import Dict, Any
+
+@app.post("/suggest_conversation")
+async def suggest_conversation(payload: Dict[str, Any] = Body(...)):
+    userA = payload["userA"]
+    userB = payload["userB"]
+    # Compose a prompt for the LLM
+    prompt = (
+        f"User A: {userA}\n"
+        f"User B: {userB}\n"
+        "Find common backgrounds and suggest 2-3 ways User A can start a conversation with User B."
+    )
+    # Call your LLM (OpenAI, Ollama, etc.)
+    suggestions = call_llm_for_suggestions(prompt)  # Implement this function
+    return {"suggestions": suggestions}
 
 # @app.post("/search_nl")
 # async def search_nl(req: NLSearchRequest, settings: Settings = Depends(get_settings)):
@@ -100,11 +116,29 @@ async def proxy_search(
 
 @app.get("/people", response_model=PeopleResponse)
 async def proxy_people(
-    ids: Optional[str] = Query(None, description="comma-separated ids"),
-    id: Optional[str] = Query(None, description="single id"),
+    ids: List[str] = Query(None, description="comma-separated ids"),
     settings: Settings = Depends(get_settings),
 ):
-    return await people_api.people(ids=ids, id=id, settings=settings)
+    current_person = await people_api.people(ids=ids, settings=settings)
+    results = current_person.get("results", {})
+    if not results or not ids or ids[0] not in results:
+        return {"error": "User not found"}
+    user_data = results[ids[0]]
+
+    linkedin = user_data.get("linkedin", {})
+    user_information = {
+        "education": linkedin.get("education"),
+        "occupation": linkedin.get("occupation"),
+        "city": linkedin.get("city"),
+        "volunteer_work": linkedin.get("volunteer_work"),
+        "summary": linkedin.get("summary"),
+        "headline": linkedin.get("headline"),
+        "groups": linkedin.get("groups"),
+        "certifications": linkedin.get("certifications"),
+        "experiences": linkedin.get("experiences"),
+        "full_name": linkedin.get("full_name"),
+    }
+    return user_information
 
 
 @app.get("/export/csv")

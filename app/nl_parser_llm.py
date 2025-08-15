@@ -146,8 +146,6 @@ def build_user_prompt(query: str) -> str:
 
 # =======================================  Ollama Example  =======================================
 
-
-# app/nl_parser_llm.py
 def parse_with_llm(query: str) -> Dict[str, Any]:
     provider = (os.getenv("LLM_PROVIDER") or "none").lower()
     if provider == "ollama":
@@ -163,83 +161,117 @@ from ollama import Client
 from pydantic import ValidationError
 from .nl_parser_llm import NLSlots, normalize_slots  # adjust import path if needed
 
-def _ollama_parse(query: str) -> Dict[str, Any]:
-    host  = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-    model = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
+# def _ollama_parse(query: str) -> Dict[str, Any]:
+#     host  = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+#     model = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
 
+#     client = Client(host=host)
+#     sys = build_system_prompt()
+#     user = build_user_prompt(query)
+
+#     # Ask for JSON output. Most recent Llama models in Ollama honor `format="json"`.
+#     try:
+#         resp = client.chat(
+#             model=model,
+#             messages=[{"role": "system", "content": sys}, {"role": "user", "content": user}],
+#             options={"temperature": 0},
+#             format="json",
+#         )
+#         raw = resp["message"]["content"]
+#         obj = json.loads(raw)
+#     except json.JSONDecodeError:
+#         m = re.search(r"\{.*\}", raw, re.S)
+#         if not m:
+#             raise RuntimeError(f"Ollama did not return JSON: {raw[:200]}")
+#         obj = json.loads(m.group(0))
+#     except Exception as e:
+#         print(f"Error calling Ollama API: {e}")
+#         raise RuntimeError(f"Ollama API call failed: {e}")
+
+#     obj = normalize_slots(obj)
+#     slots = NLSlots(**obj)
+#     return slots.dict(exclude_none=True)
+
+# def call_llm_for_suggestions(prompt: str):
+#     """
+#     Calls the LLM with the given prompt and returns a list of suggestions.
+#     You can adapt this to use your preferred LLM client.
+#     """
+#     # Example using Ollama via _ollama_parse (adapt as needed)
+#     try:
+#         # You may want to use your own LLM client here.
+#         # For demonstration, let's assume _ollama_parse returns a dict with 'suggestions'
+#         response = _ollama_parse(prompt)
+#         # If your LLM returns a string, parse it into a list:
+#         if isinstance(response, dict) and "suggestions" in response:
+#             return response["suggestions"]
+#         elif isinstance(response, str):
+#             # Try to parse as JSON list or split by lines
+#             try:
+#                 suggestions = json.loads(response)
+#                 if isinstance(suggestions, list):
+#                     return suggestions
+#             except Exception:
+#                 return [line.strip() for line in response.split("\n") if line.strip()]
+#         else:
+#             return []
+#     except Exception as e:
+#         print(f"LLM suggestion error: {e}")
+#         return ["Sorry, could not generate suggestions at this time."]
+
+def call_ollama_json(system_prompt: str, user_prompt: str, model: str = None) -> dict:
+    import os, json, re
+    from ollama import Client
+
+    host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+    model = model or os.getenv("OLLAMA_MODEL", "llama3.1:8b")
     client = Client(host=host)
-    sys = build_system_prompt()
-    user = build_user_prompt(query)
-
-    # Ask for JSON output. Most recent Llama models in Ollama honor `format="json"`.
     try:
         resp = client.chat(
             model=model,
-            messages=[{"role": "system", "content": sys}, {"role": "user", "content": user}],
+            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
             options={"temperature": 0},
             format="json",
         )
         raw = resp["message"]["content"]
-        obj = json.loads(raw)
-    except json.JSONDecodeError:
-        m = re.search(r"\{.*\}", raw, re.S)
-        if not m:
-            raise RuntimeError(f"Ollama did not return JSON: {raw[:200]}")
-        obj = json.loads(m.group(0))
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            m = re.search(r"\{.*\}", raw, re.S)
+            if not m:
+                raise RuntimeError(f"Ollama did not return JSON: {raw[:200]}")
+            return json.loads(m.group(0))
     except Exception as e:
         print(f"Error calling Ollama API: {e}")
         raise RuntimeError(f"Ollama API call failed: {e}")
 
+def _ollama_parse(query: str) -> dict:
+    sys = build_system_prompt()
+    user = build_user_prompt(query)
+    obj = call_ollama_json(sys, user)
     obj = normalize_slots(obj)
     slots = NLSlots(**obj)
     return slots.dict(exclude_none=True)
 
-
-
-# =======================================  Open AI Example  =======================================
-
-# # Provider-agnostic entrypoint. Swap in your LLM of choice.
-# def parse_with_llm(query: str) -> Dict[str, Any]:
-#     provider = (os.getenv("LLM_PROVIDER") or "none").lower()
-#     if provider == "none":
-#         raise RuntimeError("LLM disabled")
-#     if provider == "openai":
-#         return _openai_parse(query)
-#     # elif provider == "anthropic": ...
-#     # elif provider == "azure_openai": ...
-#     raise RuntimeError(f"Unsupported LLM_PROVIDER={provider}")
-
-
-# def _openai_parse(query: str) -> Dict[str, Any]:
-#     base_url = os.getenv("OPENAI_BASE_URL")
-#     api_key = os.getenv("OPENAI_API_KEY")
-#     model   = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-
-#     sys = build_system_prompt()
-#     user = build_user_prompt(query)
-#     try:
-#         # Use the OpenAI client to send a chat completion request
-#         resp = client.chat.completions.create(
-#             model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-#             messages=[{"role": "system", "content": sys}, {"role": "user", "content": user}],
-#             response_format={"type": "json_object"},
-#             temperature=0
-#         )
-#     except Exception as e:
-#         raise RuntimeError(f"OpenAI API call failed: {e}")
-#     # resp = client.chat.completions.create(
-#     #     model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-#     #     messages=[{"role":"system","content":sys},{"role":"user","content":user}],
-#     #     response_format={"type":"json_object"},
-#     #     temperature=0
-#     # )
-#     raw = resp.choices[0].message.content
-#     import json
-#     try:
-#         obj = json.loads(raw)
-#         obj = normalize_slots(obj)
-#         # Validate schema strictly
-#         slots = NLSlots(**obj)
-#         return slots.dict(exclude_none=True)
-#     except (json.JSONDecodeError, ValidationError) as e:
-#         raise RuntimeError(f"LLM parse/validate failed: {e}")
+def call_llm_for_suggestions(prompt: str):
+    """
+    Calls the LLM with the given prompt and returns a list of suggestions.
+    """
+    sys = "You are an expert networking assistant. Given two user profiles and their backgrounds, suggest 2-3 ways they could start a conversation based on their commonalities. Respond with a JSON object: {\"suggestions\": [ ... ]}"
+    user = prompt
+    try:
+        response = call_ollama_json(sys, user)
+        if isinstance(response, dict) and "suggestions" in response:
+            return response["suggestions"]
+        elif isinstance(response, str):
+            try:
+                suggestions = json.loads(response)
+                if isinstance(suggestions, list):
+                    return suggestions
+            except Exception:
+                return [line.strip() for line in response.split("\n") if line.strip()]
+        else:
+            return []
+    except Exception as e:
+        print(f"LLM suggestion error: {e}")
+        return ["Sorry, could not generate suggestions at this time."]
