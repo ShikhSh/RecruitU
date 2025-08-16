@@ -185,3 +185,4 @@ The FastAPI backend will run on [http://localhost:8000](http://localhost:8000).
 - folks from Wharton
 - graduates from Wharton
 - students from wharton who graduated in 2007
+- director in Lost Angeles in credit suisse
