@@ -96,3 +96,9 @@ The system uses a JSON configuration file at `prompts/nl_parser.json` for LLM in
   ]
 }
 ```
+
+## Tests:
+To run test:
+```bash
+python -m pytest -v
+```
