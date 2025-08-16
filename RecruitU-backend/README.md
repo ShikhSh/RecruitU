@@ -6,10 +6,9 @@ A modular Python package for parsing natural language queries into structured se
 
 - **Natural Language Query Parsing**: Convert unstructured text queries into structured search parameters
 - **LLM Integration**: Support for Ollama API with async/sync operations
-- **Intelligent Caching**: TTL-based cache system to reduce redundant API calls
+- **Intelligent Caching**: Cache system to reduce redundant API calls
 - **Conversation Suggestions**: Generate networking conversation starters based on user profiles
 - **Data Validation**: Pydantic models for robust data validation and type safety
-- **Modular Architecture**: Clean separation of concerns across multiple modules
 
 ## Architecture
 
@@ -39,87 +38,11 @@ src/
     └── prompt_builder.py  # LLM prompt construction
 ```
 
-## Installation
-
-```bash
-pip install -r requirements.txt
-```
-
 ## Environment Variables
 
 - `OLLAMA_HOST`: Ollama server URL (default: `http://localhost:11434`)
 - `OLLAMA_MODEL`: Model to use (default: `llama3.1:8b`)
 - `LLM_PROVIDER`: LLM provider to use (default: `ollama`)
-
-## Usage
-
-### Basic Query Parsing
-
-```python
-from src import generate_query_with_llm
-
-# Parse a natural language query
-result = generate_query_with_llm("Find consultants in finance from Harvard")
-print(result)
-# Output: {'sector': 'FINANCE', 'school': 'Harvard', 'page': 1, 'count': 20}
-```
-
-### Conversation Suggestions
-
-```python
-import asyncio
-from src import call_llm_for_suggestions_async
-
-async def get_suggestions():
-    prompt = "User A: Software Engineer at Google, Stanford CS grad. User B: Data Scientist at Meta, also Stanford CS grad."
-    suggestions = await call_llm_for_suggestions_async(prompt)
-    return suggestions
-
-suggestions = asyncio.run(get_suggestions())
-print(suggestions)
-```
-
-### Using the Cache
-
-```python
-from src import query_parsing_cache, suggestions_cache
-
-# Check cache statistics
-query_stats = query_parsing_cache.get_stats()
-suggestions_stats = suggestions_cache.get_stats()
-print(f"Query cache has {query_stats['active_entries']} active entries")
-print(f"Suggestions cache has {suggestions_stats['active_entries']} active entries")
-
-# Clear expired entries
-query_cleared = query_parsing_cache.clear_expired()
-suggestions_cleared = suggestions_cache.clear_expired()
-print(f"Cleared {query_cleared} expired query entries")
-print(f"Cleared {suggestions_cleared} expired suggestion entries")
-
-# Get detailed cache information (suggestions cache only)
-cache_info = suggestions_cache.get_cache_info()
-print(f"Detailed cache info: {cache_info}")
-```
-
-### Data Models
-
-```python
-from src import NLSlots, normalize_slots
-
-# Create a structured query
-slots = NLSlots(
-    name="John Doe",
-    sector="CONSULTING",
-    school="MIT",
-    page=1,
-    count=50
-)
-
-# Normalize raw LLM output
-raw_data = {"name": " Alice Smith ", "sector": "finance", "count": ""}
-normalized = normalize_slots(raw_data)
-print(normalized)  # {'name': 'Alice Smith', 'sector': 'FINANCE', 'page': 1, 'count': 20}
-```
 
 ## Module Details
 
@@ -173,26 +96,3 @@ The system uses a JSON configuration file at `prompts/nl_parser.json` for LLM in
   ]
 }
 ```
-
-## Error Handling
-
-The package includes comprehensive error handling:
-- LLM API failures with detailed error messages
-- JSON parsing errors with fallback extraction
-- Pydantic validation errors for data integrity
-- Cache operation error handling
-
-## Performance Features
-
-- **Caching**: Reduces redundant LLM API calls
-- **Async Support**: Non-blocking operations for better scalability
-- **Batch Processing**: Efficient handling of multiple queries
-- **Memory Management**: Automatic cleanup of expired cache entries
-
-## Contributing
-
-1. Follow the modular architecture
-2. Add comprehensive docstrings to all functions
-3. Include type hints for better code clarity
-4. Write unit tests for new functionality
-5. Update this README for any architectural changes

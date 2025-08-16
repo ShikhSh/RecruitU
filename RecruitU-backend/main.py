@@ -12,7 +12,6 @@ Environment Variables:
 
 API Endpoints:
 - GET /health: Health check with cache maintenance
-- GET /cache/stats: Cache statistics and monitoring
 - POST /cache/clear: Manual cache clearing
 - POST /search_nl: Natural language search with LLM parsing
 - POST /suggest_conversation: AI-powered conversation suggestions
@@ -232,11 +231,13 @@ async def search_nl(req: NLSearchRequest, settings: Settings = Depends(get_setti
     """
     print(f"Received natural language search query: '{req.query}'")
     
-    # Check if LLM is available and configured
-    use_llm = (os.getenv("LLM_PROVIDER") and os.getenv("LLM_PROVIDER").lower() != "none")
+    # Check if LLM is available and configured using settings
+    use_llm = (settings.LLM_PROVIDER and settings.LLM_PROVIDER.lower() != "none")
+    
     parsed = {}
     
     if use_llm:
+        print(f"Using LLM to parse query: {req.query}")
         try:
             # Use LLM to parse the natural language query
             parsed = generate_query_with_llm(req.query)
@@ -244,7 +245,7 @@ async def search_nl(req: NLSearchRequest, settings: Settings = Depends(get_setti
         except Exception as e:
             print(f"LLM parsing failed: {e}")
             # Continue with empty parsed dict - will use defaults
-
+    
     # Set default pagination parameters
     parsed.setdefault("page", 1)
     parsed.setdefault("count", 20)

@@ -1,7 +1,7 @@
 """
 Query Parsing Cache Implementation
 
-This module provides a TTL-based cache for query parsing results to improve
+This module provides a cache for query parsing results to improve
 performance by avoiding redundant LLM API calls.
 """
 
@@ -12,7 +12,7 @@ import hashlib
 
 class QueryParsingCache:
     """
-    In-memory cache for query parsing results with TTL (Time To Live) expiration.
+    In-memory cache for query parsing results.
     
     This cache stores LLM parsing results to avoid redundant API calls for identical
     queries. It includes automatic expiration and cleanup functionality.

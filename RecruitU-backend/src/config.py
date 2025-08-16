@@ -7,6 +7,7 @@ management for the RecruitU application.
 
 from pydantic import BaseSettings
 from functools import lru_cache
+from pathlib import Path
 
 
 class Settings(BaseSettings):
@@ -19,6 +20,9 @@ class Settings(BaseSettings):
     Attributes:
         PEOPLE_API_BASE (str): Base URL for the people API
         TIMEOUT_SECONDS (int): HTTP request timeout in seconds
+        LLM_PROVIDER (str): LLM provider type ('ollama' or 'none')
+        OLLAMA_HOST (str): Ollama server URL
+        OLLAMA_MODEL (str): Ollama model name
     """
     
     # API Configuration
@@ -32,7 +36,7 @@ class Settings(BaseSettings):
 
     class Config:
         """Pydantic configuration class."""
-        env_file = ".env"
+        env_file = "../.env"
         env_file_encoding = "utf-8"
 
 
@@ -47,7 +51,16 @@ def get_settings() -> Settings:
     Returns:
         Settings: Application configuration settings
     """
-    return Settings()
+    settings = Settings()
+    
+    # Debug: Print loaded environment variables
+    print(f"Loaded settings:")
+    print(f"  LLM_PROVIDER: {settings.LLM_PROVIDER}")
+    print(f"  OLLAMA_HOST: {settings.OLLAMA_HOST}")
+    print(f"  OLLAMA_MODEL: {settings.OLLAMA_MODEL}")
+    print(f"  PEOPLE_API_BASE: {settings.PEOPLE_API_BASE}")
+    
+    return settings
 
 
 # Export for convenience

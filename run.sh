@@ -30,10 +30,10 @@ git clone https://github.com/ShikhSh/RecruitU.git
 cd RecruitU
 
 # Install Python dependencies
-pip install -r requirements.txt
+pip install -r RecruitU-backend/requirements.txt
 
 # Install frontend dependencies
-cd front-end-app
+cd RecruitU-frontend
 sudo apt install npm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 source ~/.bashrc && nvm install 16.20.2

@@ -37,7 +37,7 @@ def generate_query_with_llm(query: str) -> Dict[str, Any]:
         return cached_result
     
     # Generate new parsing result if not cached
-    provider = (os.getenv("LLM_PROVIDER") or "none").lower()
+    provider = (os.getenv("LLM_PROVIDER", "ollama") or "none").lower()
     if provider == "ollama":
         result = _ollama_parse(query)
         # Cache the result for future requests

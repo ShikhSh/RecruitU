@@ -1,7 +1,7 @@
 """
 Conversation Suggestions Cache Implementation
 
-This module provides a TTL-based cache for conversation suggestions between users
+This module provides a cache for conversation suggestions between users
 to improve performance by avoiding redundant LLM API calls for the same user pairs.
 """
 
@@ -11,11 +11,10 @@ import time
 
 class SuggestionsCache:
     """
-    Time-based cache for conversation suggestions between users.
-    
+    Cache for conversation suggestions between users.
+
     This cache stores LLM-generated conversation suggestions to avoid redundant
-    API calls for the same user pairs. It includes automatic expiration based
-    on TTL (Time To Live) and cleanup functionality.
+    API calls for the same user pairs.
     
     Attributes:
         cache (Dict): Internal storage for cached suggestion entries

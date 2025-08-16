@@ -94,7 +94,7 @@ def filter_user_profile_for_suggestions(user_profile: Dict[str, Any]) -> Dict[st
     filtered_profile = {}
     
     # Extract basic professional information
-    basic_fields = ["full_name", "occupation", "city", "headline"]
+    basic_fields = ["full_name", "occupation", "headline"]
     for field in basic_fields:
         if field in user_profile and user_profile[field]:
             filtered_profile[field] = user_profile[field]

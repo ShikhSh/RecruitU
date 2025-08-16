@@ -30,8 +30,6 @@ RecruitU/
 │   │   ├── components/    # React components
 │   │   └── data/          # User data and types
 │   └── package.json       # Node.js dependencies
-├── tests/
-│   └── test_routes.py     # Unit tests for application routes
 ├── .vscode/
 │   └── launch.json        # VS Code debugging configuration
 ├── README.md              # Project documentation
@@ -43,7 +41,7 @@ RecruitU/
 ## Features
 
 ### Core Functionality
-- **LateralGPT**: `/search_nl` converts natural language like `CMU '19 M&A at Evercore or Gugg in NYC` into a structured search payload and returns results.
+- **LateralGPT**: `/search_nl` converts natural language like `People at Tepper` into a structured search payload and returns results.
 - **Pass‑through**: `/search` and `/people` forward to the official People API.
 - **Conversation Suggestions**: When viewing a user, get LLM-powered suggestions for conversation starters based on common backgrounds.
 
@@ -51,12 +49,9 @@ RecruitU/
 - **Query Parsing Cache**: TTL-based caching (2 hours) for LLM query parsing results to reduce API calls
 - **Conversation Suggestions Cache**: TTL-based caching (1 hour) for conversation suggestions between user pairs
 - **Frontend Caching**: Map-based caching in React for conversation suggestions per user pair
-- **Cache Management**: Endpoints for cache statistics, clearing, and maintenance
 
 ### API Endpoints
-- `GET /health` - Health check with cache cleanup
 - `POST /cache/clear` - Clear specific or all caches
-- `GET /cache/stats` - Get comprehensive cache statistics
 - `POST /search_nl` - Natural language search with caching
 - `POST /suggest_conversation` - AI conversation suggestions with caching
 - `GET /people` - User profile retrieval
@@ -117,13 +112,13 @@ Create a virtual environment and install dependencies:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r backend_app/requirements.txt
+pip install -r RecruitU-backend/requirements.txt
 ```
 
 ### Frontend Setup
 
 ```bash
-cd frontend_app
+cd RecruitU-frontend
 sudo apt install npm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 source ~/.bashrc && nvm install 16.20.2
@@ -136,16 +131,24 @@ npm install --save-dev typescript @types/react @types/react-dom
 
 #### Start frontend server (Terminal 1):
 ```bash
-cd frontend_app
-npm start
+cd RecruitU-frontend
+npm start 
 ```
 The React app will run on [http://localhost:3000](http://localhost:3000).
 
+For Production:
+```bash
+cd frontend_app
+npm run build
+npm install -g serve
+serve -s build
+```
+
 #### Start backend server (Terminal 2):
 ```bash
-cd RecruitU
 source .venv/bin/activate
-uvicorn backend_app.main:app --reload --port 8000 --host 0.0.0.0
+cd RecruitU-backend
+uvicorn main:app --reload --port 8000 --host 0.0.0.0
 ```
 
 The FastAPI backend will run on [http://localhost:8000](http://localhost:8000).
@@ -181,3 +184,4 @@ The FastAPI backend will run on [http://localhost:8000](http://localhost:8000).
 - someone who works in Parrish
 - folks from Wharton
 - graduates from Wharton
+- students from wharton who graduated in 2007

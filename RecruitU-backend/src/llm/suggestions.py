@@ -6,8 +6,6 @@ using Large Language Models based on user profile commonalities.
 """
 
 from typing import List
-import json
-import os
 from .ollama_client import call_ollama_json_async
 
 
